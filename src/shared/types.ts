@@ -21,6 +21,7 @@ export type ClosetConfig = {
   defaultCwd: string
   defaultModel?: string
   defaultPermissionMode: PermissionMode
+  shell?: string
   editor?: EditorId
   projects?: Record<string, { devCommand?: string }>
   voice?: { serverPath?: string; modelPath?: string; autoSend?: boolean }

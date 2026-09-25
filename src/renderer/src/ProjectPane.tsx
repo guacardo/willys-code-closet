@@ -13,14 +13,17 @@ export default function ProjectPane(props: { tabId: string; tab: TabState; width
 
   createEffect(on(() => `${selectedRoot()}|${mode()}`, () => setCmdDraft(null)))
 
+  const [gitExited, setGitExited] = createSignal(false)
+
   createEffect(
     on(
       () => [selectedRoot(), mode(), info()?.gitRunning] as const,
       ([root, m, gitRunning]) => {
-        if (root && m === 'git' && gitRunning === false) void window.closet.startGit(root, size.cols, size.rows).then(mutate)
+        if (root && m === 'git' && gitRunning === false && !gitExited()) void window.closet.startGit(root, size.cols, size.rows).then(mutate)
       },
     ),
   )
+  createEffect(on(selectedRoot, () => setGitExited(false)))
 
   const startDev = async () => {
     const root = selectedRoot()
@@ -106,12 +109,22 @@ export default function ProjectPane(props: { tabId: string; tab: TabState; width
         <TermPane
           ptyKey={key()}
           onSize={(c, r) => (size = { cols: c, rows: r })}
-          onExit={() => refetch()}
+          onExit={() => {
+            if (mode() === 'git') setGitExited(true)
+            refetch()
+          }}
         />
         <Show when={mode() === 'git' && info() && !info()!.gitRunning}>
           <div class="pane-toolbar">
             <span class="muted">lazygit exited.</span>
-            <button onClick={() => selectedRoot() && window.closet.startGit(selectedRoot()!, size.cols, size.rows).then(mutate)}>Restart</button>
+            <button
+              onClick={() => {
+                setGitExited(false)
+                if (selectedRoot()) void window.closet.startGit(selectedRoot()!, size.cols, size.rows).then(mutate)
+              }}
+            >
+              Restart
+            </button>
           </div>
         </Show>
       </Show>

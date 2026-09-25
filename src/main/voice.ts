@@ -1,10 +1,11 @@
-import { execFile, spawn, type ChildProcess } from 'node:child_process'
+import { spawn, type ChildProcess } from 'node:child_process'
 import { createWriteStream, existsSync, mkdirSync, readdirSync, statSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { systemPreferences } from 'electron'
 import type { ClosetConfig, VoiceEvent, VoiceStatus } from '../shared/types'
 import { configDir } from './config'
+import { which } from './shell'
 
 const MODELS_DIR = join(configDir, 'models')
 const MODEL_URL = (name: string) => `https://huggingface.co/ggerganov/whisper.cpp/resolve/main/${name}`
@@ -15,10 +16,6 @@ const SERVER_CANDIDATES = [
   join(homedir(), 'AIOS/Code/anvil/anvil-video/whisper.cpp/build/bin/whisper-server'),
 ]
 const MODEL_CANDIDATE_DIRS = [MODELS_DIR, join(homedir(), 'AIOS/Code/anvil/anvil-video/whisper.cpp'), join(homedir(), '.cache/whisper-cpp')]
-
-function which(bin: string): Promise<string | null> {
-  return new Promise((done) => execFile('/bin/zsh', ['-lc', `command -v ${bin}`], (err, out) => done(err ? null : out.trim() || null)))
-}
 
 function findModel(): string | null {
   const preferred = ['ggml-base.en.bin', 'ggml-small.en.bin', 'ggml-medium.en.bin', 'ggml-base.bin', 'ggml-small.bin']
@@ -51,7 +48,7 @@ export class VoiceManager {
     const override = this.config().voice?.serverPath
     if (override && existsSync(override)) return override
     for (const c of SERVER_CANDIDATES) if (existsSync(c)) return c
-    return which('whisper-server')
+    return which('whisper-server', this.config().shell)
   }
 
   private resolveModel(): string | null {

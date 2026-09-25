@@ -1,4 +1,5 @@
 import * as pty from 'node-pty'
+import { resolveShell } from '../shell'
 import { appendFileSync, mkdirSync } from 'node:fs'
 import { dirname } from 'node:path'
 
@@ -41,10 +42,11 @@ export class PtyManager {
     return e ? { buffer: e.buffer, running: e.running, exitCode: e.exitCode } : { buffer: '', running: false, exitCode: null }
   }
 
-  start(key: string, opts: { shellCommand: string; cwd: string; cols: number; rows: number; logFile?: string }) {
+  start(key: string, opts: { shellCommand: string; cwd: string; cols: number; rows: number; logFile?: string; shell?: string }) {
     const existing = this.entries.get(key)
     if (existing?.running) return
-    const proc = pty.spawn('/bin/zsh', ['-lc', opts.shellCommand], {
+    const sh = resolveShell(opts.shell)
+    const proc = pty.spawn(sh.path, sh.args(opts.shellCommand), {
       name: 'xterm-256color',
       cols: Math.max(20, opts.cols || 80),
       rows: Math.max(5, opts.rows || 24),
@@ -76,7 +78,12 @@ export class PtyManager {
 
   resize(key: string, cols: number, rows: number) {
     const e = this.entries.get(key)
-    if (e?.running && cols > 0 && rows > 0) e.proc.resize(cols, rows)
+    if (!e?.running || cols <= 0 || rows <= 0) return
+    try {
+      e.proc.resize(cols, rows)
+    } catch {
+      return
+    }
   }
 
   kill(key: string) {

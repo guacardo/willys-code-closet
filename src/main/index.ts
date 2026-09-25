@@ -23,6 +23,7 @@ function createWindow() {
     minWidth: 760,
     title: "Willy's Code Closet",
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
+    autoHideMenuBar: true,
     backgroundColor: '#14161a',
     webPreferences: { preload: join(__dirname, '../preload/index.js'), sandbox: false },
   })

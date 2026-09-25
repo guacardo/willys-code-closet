@@ -179,7 +179,7 @@ export default function App() {
   }
 
   async function newTab(pick = false) {
-    let cwd = active()?.cwd ?? config()?.defaultCwd
+    let cwd = config()?.defaultCwd ?? active()?.cwd
     if (pick || !cwd) {
       const dir = await window.closet.pickDirectory(cwd)
       if (!dir) return

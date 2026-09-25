@@ -1,10 +1,11 @@
-import { execFile, spawn } from 'node:child_process'
+import { spawn } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join, resolve, isAbsolute, basename } from 'node:path'
 import { shell } from 'electron'
 import type { ClosetConfig, EditorId, ProjectInfo } from '../../shared/types'
 import { configDir } from '../config'
+import { which } from '../shell'
 import { PtyManager, type PtyEvent } from './pty'
 import { expandHome, projectName } from './resolve'
 
@@ -20,10 +21,6 @@ const EDITOR_CANDIDATES: { id: EditorId; bin: string; label: string }[] = [
   { id: 'webstorm', bin: 'webstorm', label: 'WebStorm' },
   { id: 'subl', bin: 'subl', label: 'Sublime Text' },
 ]
-
-function which(bin: string): Promise<string | null> {
-  return new Promise((done) => execFile('/bin/zsh', ['-lc', `command -v ${bin}`], (err, out) => done(err ? null : out.trim() || null)))
-}
 
 export class ProjectManager {
   readonly ptys: PtyManager
@@ -83,7 +80,7 @@ export class ProjectManager {
 
   startDev(root: string, cols: number, rows: number): ProjectInfo {
     const cmd = this.info(root).devCommand
-    if (cmd) this.ptys.start(devKey(root), { shellCommand: cmd, cwd: root, cols, rows, logFile: this.logFile(root) })
+    if (cmd) this.ptys.start(devKey(root), { shellCommand: cmd, cwd: root, cols, rows, logFile: this.logFile(root), shell: this.config().shell })
     return this.info(root)
   }
 
@@ -92,7 +89,7 @@ export class ProjectManager {
   }
 
   startGit(root: string, cols: number, rows: number): ProjectInfo {
-    this.ptys.start(gitKey(root), { shellCommand: 'lazygit', cwd: root, cols, rows })
+    this.ptys.start(gitKey(root), { shellCommand: 'lazygit', cwd: root, cols, rows, shell: this.config().shell })
     return this.info(root)
   }
 
@@ -100,7 +97,7 @@ export class ProjectManager {
     if (this.editors) return this.editors
     const found: { id: EditorId; label: string; path: string }[] = []
     for (const c of EDITOR_CANDIDATES) {
-      const p = await which(c.bin)
+      const p = await which(c.bin, this.config().shell)
       if (p) found.push({ id: c.id, label: c.label, path: p })
     }
     this.editors = found

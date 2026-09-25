@@ -41,6 +41,19 @@ export default function Settings(props: { onClose: () => void }) {
           <span class="hint">Used by ↗ on tool rows, file paths in replies, and the project pane. Detected on this machine only.</span>
         </div>
 
+        <h3>Shell</h3>
+        <div class="setting">
+          <label>Shell for dev / git panes</label>
+          <input
+            type="text"
+            class="mono"
+            placeholder="auto"
+            value={config()?.shell ?? ''}
+            onChange={(e) => patch({ shell: e.currentTarget.value.trim() || undefined })}
+          />
+          <span class="hint">Full path, e.g. /bin/zsh, /usr/bin/fish, pwsh.exe. Blank = $SHELL, then zsh → bash → fish → sh (PowerShell → cmd on Windows).</span>
+        </div>
+
         <h3>New tabs</h3>
         <div class="setting">
           <label>Default folder</label>
