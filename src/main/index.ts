@@ -22,6 +22,7 @@ function createWindow() {
     height: 860,
     minWidth: 760,
     title: "Willy's Code Closet",
+    icon: join(__dirname, '../../resources/icon.png'),
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
     autoHideMenuBar: true,
     backgroundColor: '#14161a',
