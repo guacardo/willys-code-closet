@@ -143,6 +143,7 @@ export type ClosetApi = {
   projectInfo(root: string): Promise<ProjectInfo>
   startDev(root: string, cols: number, rows: number): Promise<ProjectInfo>
   stopDev(root: string): Promise<void>
+  stopGit(root: string): Promise<void>
   startGit(root: string, cols: number, rows: number): Promise<ProjectInfo>
   setDevCommand(root: string, command: string | null): Promise<ProjectInfo>
   ptyAttach(key: string): Promise<PtyAttach>

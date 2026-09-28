@@ -68,6 +68,7 @@ app.whenReady().then(() => {
   ipcMain.handle('projects:startDev', (_e, root: string, cols: number, rows: number) => projects.startDev(root, cols, rows))
   ipcMain.handle('projects:stopDev', (_e, root: string) => projects.stopDev(root))
   ipcMain.handle('projects:startGit', (_e, root: string, cols: number, rows: number) => projects.startGit(root, cols, rows))
+  ipcMain.handle('projects:stopGit', (_e, root: string) => projects.stopGit(root))
   ipcMain.handle('projects:setDevCommand', (_e, root: string, command: string | null) => {
     projects.setDevCommand(root, command)
     return projects.info(root)

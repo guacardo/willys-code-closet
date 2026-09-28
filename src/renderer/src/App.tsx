@@ -27,7 +27,10 @@ export default function App() {
       const cfg = await window.closet.getConfig()
       setDraft((d) => (d.trim() ? `${d.replace(/\s+$/, '')} ${text}` : text))
       if (cfg.voice?.autoSend) void send()
-      else input?.focus()
+      else {
+        fitInput()
+        input?.focus()
+      }
     },
     onError: (message) => {
       if (state.activeId) applyEvent({ tabId: state.activeId, type: 'error', message })
@@ -67,6 +70,36 @@ export default function App() {
   let scroller!: HTMLDivElement
   let input!: HTMLTextAreaElement
   let pttHeld = false
+  const [following, setFollowing] = createSignal(true)
+  let inputResized = false
+
+  function scrollToBottom() {
+    setFollowing(true)
+    scroller?.scrollTo({ top: scroller.scrollHeight })
+  }
+
+  let lastTop = 0
+  function onScroll() {
+    const top = scroller.scrollTop
+    const gap = scroller.scrollHeight - top - scroller.clientHeight
+    if (gap < 24) setFollowing(true)
+    else if (top < lastTop) setFollowing(false)
+    lastTop = top
+  }
+
+  function fitInput() {
+    const el = input
+    if (!el) return
+    const max = Math.floor(window.innerHeight * 0.5)
+    if (!inputResized) el.style.height = 'auto'
+    const needed = Math.min(el.scrollHeight + 2, max)
+    if (!inputResized || needed > el.clientHeight) el.style.height = `${needed}px`
+  }
+
+  function resetInput() {
+    inputResized = false
+    if (input) input.style.height = 'auto'
+  }
 
   const active = createMemo(() => state.tabs.find((t) => t.id === state.activeId) ?? null)
   const ts = createMemo(() => (state.activeId ? state.byTab[state.activeId] : undefined) ?? emptyTabState())
@@ -85,7 +118,7 @@ export default function App() {
     onCleanup(offPty)
     const off = window.closet.onEvent((e) => {
       applyEvent(e)
-      if (e.tabId === state.activeId) queueMicrotask(() => scroller?.scrollTo({ top: scroller.scrollHeight }))
+      if (e.tabId === state.activeId && following()) queueMicrotask(() => scroller?.scrollTo({ top: scroller.scrollHeight }))
     })
     onCleanup(off)
     const onKeyUp = (ev: KeyboardEvent) => {
@@ -132,7 +165,7 @@ export default function App() {
           return
         }
       }
-      if (ev.key === 'Escape' && ts().busy) {
+      if (ev.key === 'Escape' && ts().busy && !(document.activeElement as HTMLElement | null)?.closest('.term')) {
         ev.preventDefault()
         if (state.activeId) window.closet.cancel(state.activeId)
       } else if (mod && ev.key.toLowerCase() === 't') {
@@ -166,7 +199,7 @@ export default function App() {
     setActive(id)
     window.closet.openTab(id)
     queueMicrotask(() => {
-      scroller?.scrollTo({ top: scroller.scrollHeight })
+      scrollToBottom()
       input?.focus()
     })
   }
@@ -219,7 +252,9 @@ export default function App() {
     if (!id || (!text && !imgs.length) || ts().busy) return
     setDraft('')
     setImages([])
+    resetInput()
     addUser(id, text)
+    queueMicrotask(scrollToBottom)
     try {
       await window.closet.send(id, text, imgs)
     } catch (err) {
@@ -307,15 +342,22 @@ export default function App() {
               </header>
 
               <div class="body">
-                <div class="scroll" ref={scroller}>
-                  <Show when={ts().items.length === 0}>
-                    <p class="empty">
-                      {ts().starting ? 'Starting Claude Code…' : ts().live ? 'Session ready.' : 'Send a message to start this session.'}
-                      <br />
-                      <span class="muted">Enter sends · Shift+Enter newline · Esc cancels · ⌘T new tab here · ⇧⌘T new tab in another folder · ⌘I session info · ⌘J dev/git pane · ⌘⇧M dictate · hold ⌥Space to talk</span>
-                    </p>
+                <div class="scrollwrap">
+                  <div class="scroll" ref={scroller} onScroll={onScroll}>
+                    <Show when={ts().items.length === 0}>
+                      <p class="empty">
+                        {ts().starting ? 'Starting Claude Code…' : ts().live ? 'Session ready.' : 'Send a message to start this session.'}
+                        <br />
+                        <span class="muted">Enter sends · Shift+Enter newline · Esc cancels · ⌘T new tab here · ⇧⌘T new tab in another folder · ⌘I session info · ⌘J dev/git pane · ⌘⇧M dictate · hold ⌥Space to talk</span>
+                      </p>
+                    </Show>
+                    <Transcript items={ts().items} tabId={tab().id} showCost={!ts().loaded?.subscription} decide={decide} />
+                  </div>
+                  <Show when={!following()}>
+                    <button class="jump" classList={{ busy: ts().busy }} title="Scroll to bottom and follow new output" onClick={scrollToBottom}>
+                      ↓ {ts().busy ? 'new output' : 'bottom'}
+                    </button>
                   </Show>
-                  <Transcript items={ts().items} tabId={tab().id} showCost={!ts().loaded?.subscription} decide={decide} />
                 </div>
                 <Show when={ts().paneOpen}>
                   <Splitter onDrag={(dx) => setPaneW(paneW() - dx)} onDouble={() => setPaneW(560)} />
@@ -348,7 +390,14 @@ export default function App() {
                   placeholder={ts().busy ? 'Working… (Esc to cancel)' : images().length ? 'Add a note about the image(s)…' : 'Message Claude Code · paste or drop images'}
                   rows={1}
                   onPaste={onPaste}
-                  onInput={(e) => setDraft(e.currentTarget.value)}
+                  onInput={(e) => {
+                    setDraft(e.currentTarget.value)
+                    fitInput()
+                  }}
+                  onMouseDown={(e) => {
+                    const r = e.currentTarget.getBoundingClientRect()
+                    if (r.right - e.clientX < 18 && r.bottom - e.clientY < 18) inputResized = true
+                  }}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && !e.shiftKey) {
                       e.preventDefault()

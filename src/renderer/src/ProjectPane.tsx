@@ -1,6 +1,6 @@
 import { createEffect, createResource, createSignal, For, Show, on } from 'solid-js'
 import type { ProjectInfo } from '../../shared/types'
-import TermPane from './TermPane'
+import TermPane, { type TermApi } from './TermPane'
 import { setPane, setPinnedProject, state, type TabState } from './store'
 
 export default function ProjectPane(props: { tabId: string; tab: TabState; width?: number; onClose: () => void }) {
@@ -10,6 +10,8 @@ export default function ProjectPane(props: { tabId: string; tab: TabState; width
   const [info, { refetch, mutate }] = createResource(selectedRoot, (root) => window.closet.projectInfo(root))
   const [cmdDraft, setCmdDraft] = createSignal<string | null>(null)
   let size = { cols: 100, rows: 30 }
+  let term: TermApi | undefined
+  let relaunch = false
 
   createEffect(on(() => `${selectedRoot()}|${mode()}`, () => setCmdDraft(null)))
 
@@ -106,13 +108,34 @@ export default function ProjectPane(props: { tabId: string; tab: TabState; width
             </span>
           </div>
         </Show>
+        <Show when={mode() === 'git' && info()?.gitRunning}>
+          <div class="pane-toolbar">
+            <span class="muted">lazygit</span>
+            <button title="Clear the terminal and force lazygit to repaint" onClick={() => term?.redraw()}>
+              Redraw
+            </button>
+            <button
+              title="Kill lazygit and launch it again"
+              onClick={() => {
+                if (!selectedRoot()) return
+                relaunch = true
+                void window.closet.stopGit(selectedRoot()!)
+              }}
+            >
+              Restart
+            </button>
+          </div>
+        </Show>
         <TermPane
           ptyKey={key()}
+          replay={mode() === 'dev'}
           onSize={(c, r) => (size = { cols: c, rows: r })}
           onExit={() => {
-            if (mode() === 'git') setGitExited(true)
+            if (mode() === 'git') setGitExited(!relaunch)
+            relaunch = false
             refetch()
           }}
+          onApi={(api) => (term = api)}
         />
         <Show when={mode() === 'git' && info() && !info()!.gitRunning}>
           <div class="pane-toolbar">

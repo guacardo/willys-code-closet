@@ -93,6 +93,10 @@ export class ProjectManager {
     return this.info(root)
   }
 
+  stopGit(root: string) {
+    this.ptys.kill(gitKey(root))
+  }
+
   async listEditors() {
     if (this.editors) return this.editors
     const found: { id: EditorId; label: string; path: string }[] = []

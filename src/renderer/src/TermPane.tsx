@@ -4,7 +4,15 @@ import { WebLinksAddon } from '@xterm/addon-web-links'
 import { createEffect, on, onCleanup, onMount } from 'solid-js'
 import '@xterm/xterm/css/xterm.css'
 
-export default function TermPane(props: { ptyKey: string; onExit?: (code: number) => void; onSize?: (cols: number, rows: number) => void }) {
+export type TermApi = { redraw: () => void }
+
+export default function TermPane(props: {
+  ptyKey: string
+  replay?: boolean
+  onExit?: (code: number) => void
+  onSize?: (cols: number, rows: number) => void
+  onApi?: (api: TermApi) => void
+}) {
   let host!: HTMLDivElement
   let term: Terminal
   let fit: FitAddon
@@ -20,11 +28,24 @@ export default function TermPane(props: { ptyKey: string; onExit?: (code: number
     }
   }
 
+  const nudge = () => {
+    const k = key
+    window.closet.ptyResize(k, Math.max(20, term.cols - 1), term.rows)
+    setTimeout(() => k === key && window.closet.ptyResize(k, term.cols, term.rows), 60)
+  }
+
   const attach = async () => {
     term.reset()
     const a = await window.closet.ptyAttach(key)
-    if (a.buffer) term.write(a.buffer)
+    if (a.buffer && props.replay !== false) term.write(a.buffer)
     doFit()
+    if (a.running && props.replay === false) nudge()
+  }
+
+  const redraw = () => {
+    term.reset()
+    doFit()
+    nudge()
   }
 
   onMount(() => {
@@ -49,6 +70,7 @@ export default function TermPane(props: { ptyKey: string; onExit?: (code: number
     })
     const ro = new ResizeObserver(() => doFit())
     ro.observe(host)
+    props.onApi?.({ redraw })
     void attach()
     onCleanup(() => {
       off()
