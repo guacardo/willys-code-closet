@@ -12,9 +12,20 @@ let tabs: TabManager
 let projects: ProjectManager
 let voice: VoiceManager
 
-function emit(e: HarnessEvent) {
-  win?.webContents.send('closet:event', e)
+let quitting = false
+
+function send(channel: string, payload: unknown) {
+  if (win && !win.isDestroyed()) win.webContents.send(channel, payload)
 }
+
+function emit(e: HarnessEvent) {
+  send('closet:event', e)
+}
+
+process.on('uncaughtException', (err) => {
+  console.error(err)
+  if (!quitting) dialog.showErrorBox('Willy\'s Code Closet', err.stack ?? String(err))
+})
 
 function createWindow() {
   win = new BrowserWindow({
@@ -32,6 +43,7 @@ function createWindow() {
     shell.openExternal(url)
     return { action: 'deny' }
   })
+  win.on('closed', () => (win = null))
   if (process.env.ELECTRON_RENDERER_URL) win.loadURL(process.env.ELECTRON_RENDERER_URL)
   else win.loadFile(join(__dirname, '../renderer/index.html'))
 }
@@ -61,7 +73,7 @@ app.whenReady().then(() => {
       config = { ...config, ...patch }
       saveConfig(config)
     },
-    (e) => win?.webContents.send('pty:event', e),
+    (e) => send('pty:event', e),
   )
   tabs.setProjectResolver((tabId) => tabs.projectRoots(tabId))
   ipcMain.handle('projects:info', (_e, root: string) => projects.info(root))
@@ -76,7 +88,8 @@ app.whenReady().then(() => {
   ipcMain.handle('pty:attach', (_e, key: string) => projects.ptys.attach(key))
   ipcMain.on('pty:input', (_e, key: string, data: string) => projects.ptys.write(key, data))
   ipcMain.on('pty:resize', (_e, key: string, cols: number, rows: number) => projects.ptys.resize(key, cols, rows))
-  voice = new VoiceManager(() => config, (e) => win?.webContents.send('voice:event', e))
+  voice = new VoiceManager(() => config, (e) => send('voice:event', e))
+  ipcMain.handle('shell:openExternal', (_e, url: string) => shell.openExternal(url))
   ipcMain.handle('voice:status', () => voice.status())
   ipcMain.handle('voice:requestMic', () => voice.requestMic())
   ipcMain.handle('voice:transcribe', (_e, wav: Uint8Array) => voice.transcribe(wav))
@@ -107,6 +120,7 @@ app.whenReady().then(() => {
 })
 
 app.on('before-quit', () => {
+  quitting = true
   tabs?.closeAll()
   projects?.shutdown()
   voice?.shutdown()

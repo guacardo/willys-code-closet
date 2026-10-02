@@ -101,6 +101,26 @@ export default function App() {
     if (input) input.style.height = 'auto'
   }
 
+  function onGripDown(e: PointerEvent) {
+    const grip = e.currentTarget as HTMLElement
+    const startY = e.clientY
+    const startH = input.getBoundingClientRect().height
+    const max = Math.floor(window.innerHeight * 0.5)
+    grip.setPointerCapture(e.pointerId)
+    document.body.classList.add('resizing-v')
+    const move = (ev: PointerEvent) => {
+      inputResized = true
+      input.style.height = `${Math.min(max, Math.max(40, startH + startY - ev.clientY))}px`
+    }
+    const up = () => {
+      grip.removeEventListener('pointermove', move)
+      grip.removeEventListener('pointerup', up)
+      document.body.classList.remove('resizing-v')
+    }
+    grip.addEventListener('pointermove', move)
+    grip.addEventListener('pointerup', up)
+  }
+
   const active = createMemo(() => state.tabs.find((t) => t.id === state.activeId) ?? null)
   const ts = createMemo(() => (state.activeId ? state.byTab[state.activeId] : undefined) ?? emptyTabState())
 
@@ -384,6 +404,7 @@ export default function App() {
                     </For>
                   </div>
                 </Show>
+                <div class="grip" title="Drag to resize · double-click to reset" onPointerDown={onGripDown} onDblClick={() => { resetInput(); fitInput() }} />
                 <textarea
                   ref={input}
                   value={draft()}
@@ -393,10 +414,6 @@ export default function App() {
                   onInput={(e) => {
                     setDraft(e.currentTarget.value)
                     fitInput()
-                  }}
-                  onMouseDown={(e) => {
-                    const r = e.currentTarget.getBoundingClientRect()
-                    if (r.right - e.clientX < 18 && r.bottom - e.clientY < 18) inputResized = true
                   }}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && !e.shiftKey) {

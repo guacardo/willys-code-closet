@@ -24,10 +24,32 @@ export function useMic(opts: { onText: (text: string) => void; onError: (message
     onCleanup(off)
   })
 
+  const SPEECH_LEVEL = 0.1
+  const SILENCE_MS = 8_000
+  const NO_SPEECH_MS = 20_000
+  const MAX_MS = 10 * 60_000
+  let lastLoud = 0
+  let spoke = false
+
   const tick = () => {
     if (!handle) return
-    setLevel(handle.level())
+    const lv = handle.level()
+    const now = performance.now()
+    setLevel(lv)
     setSeconds(handle.seconds())
+    if (lv > SPEECH_LEVEL) {
+      lastLoud = now
+      spoke = true
+    }
+    const quiet = now - lastLoud
+    if (handle.seconds() * 1000 > MAX_MS || (spoke && quiet > SILENCE_MS)) {
+      void stop()
+      return
+    }
+    if (!spoke && quiet > NO_SPEECH_MS) {
+      cancel()
+      return
+    }
     timer = requestAnimationFrame(tick)
   }
 
@@ -37,6 +59,8 @@ export function useMic(opts: { onText: (text: string) => void; onError: (message
       const ok = await window.closet.voiceRequestMic()
       if (!ok) throw new Error('Microphone access denied. Allow it in System Settings → Privacy & Security → Microphone.')
       handle = await startRecording()
+      lastLoud = performance.now()
+      spoke = false
       setState('recording')
       tick()
     } catch (err) {
@@ -91,7 +115,7 @@ export default function MicButton(props: { mic: ReturnType<typeof useMic> }) {
       classList={{ recording: s() === 'recording', busy: s() === 'transcribing' || s() === 'preparing', error: s() === 'error' }}
       title={
         s() === 'recording'
-          ? 'Stop and transcribe (⌘⇧M, or release ⌥Space)'
+          ? 'Stop and transcribe (⌘⇧M, or release ⌥Space) · auto-stops after 8s of silence'
           : s() === 'transcribing'
             ? 'Transcribing…'
             : s() === 'preparing'

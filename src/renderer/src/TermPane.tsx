@@ -60,7 +60,7 @@ export default function TermPane(props: {
     })
     fit = new FitAddon()
     term.loadAddon(fit)
-    term.loadAddon(new WebLinksAddon())
+    term.loadAddon(new WebLinksAddon((_e, uri) => void window.closet.openExternal(uri)))
     term.open(host)
     term.onData((d) => window.closet.ptyInput(key, d))
     const off = window.closet.onPty((e) => {

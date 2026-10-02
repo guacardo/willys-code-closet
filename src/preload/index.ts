@@ -28,6 +28,7 @@ const api: ClosetApi = {
   stopDev: (root) => ipcRenderer.invoke('projects:stopDev', root),
   startGit: (root, cols, rows) => ipcRenderer.invoke('projects:startGit', root, cols, rows),
   stopGit: (root) => ipcRenderer.invoke('projects:stopGit', root),
+  openExternal: (url) => ipcRenderer.invoke('shell:openExternal', url),
   setDevCommand: (root, command) => ipcRenderer.invoke('projects:setDevCommand', root, command),
   ptyAttach: (key) => ipcRenderer.invoke('pty:attach', key),
   ptyInput: (key, data) => ipcRenderer.send('pty:input', key, data),

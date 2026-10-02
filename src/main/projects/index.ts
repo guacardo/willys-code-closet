@@ -1,13 +1,30 @@
 import { spawn } from 'node:child_process'
-import { existsSync, readFileSync } from 'node:fs'
+import { closeSync, existsSync, openSync, readFileSync, readSync } from 'node:fs'
 import { homedir } from 'node:os'
-import { join, resolve, isAbsolute, basename } from 'node:path'
+import { join, resolve, isAbsolute, basename, extname } from 'node:path'
 import { shell } from 'electron'
 import type { ClosetConfig, EditorId, ProjectInfo } from '../../shared/types'
 import { configDir } from '../config'
 import { which } from '../shell'
 import { PtyManager, type PtyEvent } from './pty'
 import { expandHome, projectName } from './resolve'
+
+const BINARY_EXT = new Set(
+  'wav mp3 aiff aif flac ogg m4a mid midi png jpg jpeg gif webp bmp ico icns mp4 mov mkv webm pdf doc docx xls xlsx ppt pptx key numbers pages zip tar gz tgz bz2 xz 7z dmg pkg app exe dll so dylib o a wasm ttf otf woff woff2 sqlite db'.split(' '),
+)
+
+function isTextFile(file: string): boolean {
+  if (BINARY_EXT.has(extname(file).slice(1).toLowerCase())) return false
+  try {
+    const fd = openSync(file, 'r')
+    const buf = Buffer.alloc(8192)
+    const n = readSync(fd, buf, 0, buf.length, 0)
+    closeSync(fd)
+    return !buf.subarray(0, n).includes(0)
+  } catch {
+    return true
+  }
+}
 
 export const devKey = (root: string) => `${root}::dev`
 export const gitKey = (root: string) => `${root}::git`
@@ -115,6 +132,10 @@ export class ProjectManager {
     let file = target.file ? expandHome(target.file) : undefined
     if (file && !isAbsolute(file)) file = resolve(target.root ?? target.cwd ?? homedir(), file)
     if (file && !existsSync(file)) return `not found: ${file}`
+    if (file && !isTextFile(file)) {
+      await shell.openPath(file)
+      return null
+    }
     if (!editor) {
       await shell.openPath(file ?? target.root ?? homedir())
       return null
