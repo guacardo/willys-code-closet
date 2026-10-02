@@ -149,6 +149,10 @@ export class TabSession {
     this.emitRaw({ type: 'resync', events: this.log, busy: this.busy })
   }
 
+  snapshot() {
+    return { events: this.log, busy: this.busy, pending: [...this.pendingRequests.values()] }
+  }
+
   get running() {
     return this.q !== null && !this.stopped
   }

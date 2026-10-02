@@ -4,6 +4,7 @@ import { loadConfig, saveConfig } from './config'
 import { TabManager } from './sessions/manager'
 import { ProjectManager } from './projects'
 import { VoiceManager } from './voice'
+import { ApiServer } from './api'
 import type { ClosetConfig, HarnessEvent, ImageAttachment, PermissionDecision, Tab } from '../shared/types'
 
 let win: BrowserWindow | null = null
@@ -11,6 +12,7 @@ let config = loadConfig()
 let tabs: TabManager
 let projects: ProjectManager
 let voice: VoiceManager
+let api: ApiServer | undefined
 
 let quitting = false
 
@@ -20,6 +22,7 @@ function send(channel: string, payload: unknown) {
 
 function emit(e: HarnessEvent) {
   send('closet:event', e)
+  api?.broadcast(e)
 }
 
 process.on('uncaughtException', (err) => {
@@ -113,6 +116,9 @@ app.whenReady().then(() => {
     return r.canceled ? null : r.filePaths[0]
   })
 
+  api = new ApiServer(tabs, () => config)
+  api.start()
+
   createWindow()
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
@@ -121,6 +127,7 @@ app.whenReady().then(() => {
 
 app.on('before-quit', () => {
   quitting = true
+  api?.stop()
   tabs?.closeAll()
   projects?.shutdown()
   voice?.shutdown()

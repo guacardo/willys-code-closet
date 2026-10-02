@@ -30,3 +30,10 @@ anvil-video checkout); a base.en model can be downloaded from the session panel.
 composer for review, or send immediately (Settings → Voice).
 
 Settings (gear at the bottom of the sidebar, ⌘,): editor, new-tab defaults, voice paths and behavior.
+
+Remote API: the main process serves JSON on `127.0.0.1:7474` (`api.port` in config.json): `GET /tabs`,
+`GET /tabs/:id` (event log), `GET /tabs/:id/events` (SSE), `POST /tabs/:id/{send,permission,cancel}`,
+and `POST /send {tab: <id|name|folder>, text, images?}`. Expose it on your tailnet with
+`tailscale serve --bg 7474`; set `api.login` to your Tailscale login to require the identity header it
+adds. The iOS companion and Shortcuts intent live in
+[willys-code-closet-ios](https://github.com/guacardo/willys-code-closet-ios).

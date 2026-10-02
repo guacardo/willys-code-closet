@@ -112,6 +112,10 @@ export class TabManager {
     this.session(id).send(text, images)
   }
 
+  snapshot(id: string) {
+    return this.sessions.get(id)?.snapshot() ?? { events: [], busy: false, pending: [] }
+  }
+
   cancel(id: string) {
     return this.sessions.get(id)?.cancel()
   }

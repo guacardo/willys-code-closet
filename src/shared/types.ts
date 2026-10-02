@@ -25,6 +25,7 @@ export type ClosetConfig = {
   editor?: EditorId
   projects?: Record<string, { devCommand?: string }>
   voice?: { serverPath?: string; modelPath?: string; autoSend?: boolean }
+  api?: { port?: number; login?: string }
 }
 
 export type VoiceStatus = {
