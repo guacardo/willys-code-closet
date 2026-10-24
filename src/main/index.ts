@@ -5,6 +5,7 @@ import { TabManager } from './sessions/manager'
 import { ProjectManager } from './projects'
 import { VoiceManager } from './voice'
 import { ApiServer } from './api'
+import { adoptShellPath } from './shell'
 import type { ClosetConfig, HarnessEvent, ImageAttachment, PermissionDecision, Tab } from '../shared/types'
 
 let win: BrowserWindow | null = null
@@ -51,8 +52,12 @@ function createWindow() {
   else win.loadFile(join(__dirname, '../renderer/index.html'))
 }
 
-app.whenReady().then(() => {
+app.setName("Willy's Code Closet")
+
+app.whenReady().then(async () => {
+  await adoptShellPath()
   nativeTheme.themeSource = 'dark'
+  if (process.platform === 'darwin') app.dock?.setIcon(join(__dirname, '../../resources/icon.png'))
   tabs = new TabManager(() => config, emit)
 
   ipcMain.handle('layout:get', () => tabs.layout())

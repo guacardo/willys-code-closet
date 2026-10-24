@@ -3,6 +3,7 @@ import { FitAddon } from '@xterm/addon-fit'
 import { WebLinksAddon } from '@xterm/addon-web-links'
 import { createEffect, on, onCleanup, onMount } from 'solid-js'
 import '@xterm/xterm/css/xterm.css'
+import { termTheme } from './theme'
 
 export type TermApi = { redraw: () => void }
 
@@ -56,7 +57,10 @@ export default function TermPane(props: {
       cursorBlink: true,
       scrollback: 5000,
       allowProposedApi: true,
-      theme: { background: '#14161a', foreground: '#e6e6e6', cursor: '#e8792b', selectionBackground: '#3a3f4a' },
+      theme: termTheme(),
+    })
+    createEffect(() => {
+      term.options.theme = termTheme()
     })
     fit = new FitAddon()
     term.loadAddon(fit)

@@ -6,6 +6,7 @@ type Props = {
   onSelect: (id: string) => void
   onNew: () => void
   onNewIn: () => void
+  onNewInGroup: (name: string) => void
   onRename: (id: string, name: string) => void
   onClose: (id: string) => void
   onSettings: () => void
@@ -230,6 +231,16 @@ export default function Sidebar(props: Props & { width?: number }) {
                   title="Enter or double-click to rename · drag to reorder"
                 >
                   <span class="tab-name">{g.name}</span>
+                  <button
+                    class="close add"
+                    title="New tab in this group"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      props.onNewInGroup(g.name)
+                    }}
+                  >
+                    +
+                  </button>
                   <button
                     class="close"
                     title="Remove group (tabs stay, ungrouped)"

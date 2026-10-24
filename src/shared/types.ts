@@ -1,3 +1,5 @@
+import type { ThemeId } from './themes'
+
 export type PermissionDecision = 'allow' | 'always' | 'deny'
 export type PermissionMode = 'auto' | 'default' | 'acceptEdits' | 'bypassPermissions' | 'plan'
 
@@ -26,6 +28,7 @@ export type ClosetConfig = {
   projects?: Record<string, { devCommand?: string }>
   voice?: { serverPath?: string; modelPath?: string; autoSend?: boolean }
   api?: { port?: number; login?: string }
+  theme?: ThemeId
 }
 
 export type VoiceStatus = {

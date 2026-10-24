@@ -1,0 +1,6 @@
+#!/bin/sh
+# Rebuild out/ so the installed launcher runs the committed code.
+cd "$(git rev-parse --show-toplevel)" || exit 0
+npm run build >/dev/null 2>&1 && echo "code-closet: out/ rebuilt" || echo "code-closet: build FAILED (run npm run build)"
+[ "$(uname)" = Darwin ] && [ -x scripts/mac-app.sh ] && scripts/mac-app.sh >/dev/null
+exit 0

@@ -27,6 +27,17 @@ export function resolveShell(configured?: string): ShellSpec {
   return { path, args: argsFor(path) }
 }
 
+export function adoptShellPath(): Promise<void> {
+  if (process.platform === 'win32') return Promise.resolve()
+  return new Promise((done) =>
+    execFile(detectedShell, ['-ilc', 'printf "__PATH__%s__PATH__" "$PATH"'], { timeout: 5000 }, (err, out) => {
+      const path = !err && out.match(/__PATH__(.*)__PATH__/)?.[1]
+      if (path) process.env.PATH = path
+      done()
+    }),
+  )
+}
+
 export function which(bin: string, shell?: string): Promise<string | null> {
   const sh = resolveShell(shell)
   const probe = process.platform === 'win32' ? `where ${bin}` : `command -v ${bin}`

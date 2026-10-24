@@ -1,5 +1,7 @@
 import { createResource, createSignal, For, onCleanup, onMount, Show } from 'solid-js'
 import type { ClosetConfig, PermissionMode } from '../../shared/types'
+import { defaultTheme, themes, type ThemeId } from '../../shared/themes'
+import { applyTheme } from './theme'
 
 export default function Settings(props: { onClose: () => void }) {
   const [config, { mutate }] = createResource(() => window.closet.getConfig())
@@ -30,6 +32,21 @@ export default function Settings(props: { onClose: () => void }) {
           <button class="icon" onClick={props.onClose} title="Close (Esc)">
             ×
           </button>
+        </div>
+
+        <h3>Appearance</h3>
+        <div class="setting">
+          <label>Theme</label>
+          <select
+            value={config()?.theme ?? defaultTheme}
+            onChange={async (e) => {
+              const theme = e.currentTarget.value as ThemeId
+              applyTheme(theme)
+              await patch({ theme })
+            }}
+          >
+            <For each={Object.entries(themes)}>{([id, t]) => <option value={id}>{t.label}</option>}</For>
+          </select>
         </div>
 
         <h3>Editor</h3>

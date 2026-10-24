@@ -8,6 +8,7 @@ import ProjectPane from './ProjectPane'
 import Splitter, { persistedWidth } from './Splitter'
 import MicButton, { useMic } from './MicButton'
 import Settings from './Settings'
+import { applyTheme } from './theme'
 import type { ImageAttachment } from '../../shared/types'
 import { addUser, applyEvent, emptyTabState, setDevRunning, setPane, orderedTabs, removeTab, setActive, setLayout, state, upsertTab } from './store'
 
@@ -125,7 +126,10 @@ export default function App() {
   const ts = createMemo(() => (state.activeId ? state.byTab[state.activeId] : undefined) ?? emptyTabState())
 
   onMount(() => {
-    window.closet.getConfig().then(setConfig)
+    window.closet.getConfig().then((cfg) => {
+      setConfig(cfg)
+      applyTheme(cfg.theme)
+    })
     window.closet.getLayout().then((layout) => {
       setLayout(layout)
       const first = orderedTabs()[0]
@@ -231,14 +235,14 @@ export default function App() {
     if (next) select(next.id)
   }
 
-  async function newTab(pick = false) {
+  async function newTab(pick = false, group = '') {
     let cwd = config()?.defaultCwd ?? active()?.cwd
     if (pick || !cwd) {
       const dir = await window.closet.pickDirectory(cwd)
       if (!dir) return
       cwd = dir
     }
-    const tab = await window.closet.createTab({ cwd, group: active()?.group })
+    const tab = await window.closet.createTab({ cwd, group })
     upsertTab(tab)
     select(tab.id)
   }
@@ -299,7 +303,7 @@ export default function App() {
 
   return (
     <div class="app">
-      <Sidebar width={sidebarW()} onSelect={select} onNew={() => newTab()} onNewIn={() => newTab(true)} onRename={rename} onClose={closeTab} onSettings={() => setShowSettings(true)} />
+      <Sidebar width={sidebarW()} onSelect={select} onNew={() => newTab()} onNewIn={() => newTab(true)} onNewInGroup={(g) => newTab(false, g)} onRename={rename} onClose={closeTab} onSettings={() => setShowSettings(true)} />
       <Show when={showSettings()}>
         <Settings onClose={() => setShowSettings(false)} />
       </Show>
