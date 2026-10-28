@@ -185,7 +185,7 @@ export default function Sidebar(props: Props & { width?: number }) {
         </div>
         <For each={lay().groups}>
           {(g) => (
-            <div class="group" classList={{ over: isOverGroup(g.name) }} {...groupZone(g.name)}>
+            <div class="group named" classList={{ over: isOverGroup(g.name) }} {...groupZone(g.name)}>
               <Show
                 when={editingGroup() !== g.name}
                 fallback={

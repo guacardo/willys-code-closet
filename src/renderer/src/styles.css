@@ -292,7 +292,9 @@ body.resizing .term, body.resizing iframe { pointer-events: none; }
 .group-name:hover .close { visibility: visible; }
 .group-name .close:hover { color: var(--danger); }
 .group-name .close.add:hover { color: var(--accent); }
-.group-name .fold { background: none; border: 0; color: inherit; padding: 0; width: 12px; font-size: 10px; line-height: 1; cursor: pointer; }
+.group-name .fold { background: none; border: 0; color: inherit; padding: 0; width: 18px; font-size: 16px; line-height: 1; cursor: pointer; }
+.group-name .fold:hover { color: var(--text); }
+.group.named .tab { margin-left: 16px; }
 .group-name.alert { color: var(--accent); background: rgba(232, 121, 43, 0.1); }
 .group-name .badge { text-transform: none; letter-spacing: normal; }
 .group.over { background: rgba(232, 121, 43, 0.08); border-radius: 6px; }
