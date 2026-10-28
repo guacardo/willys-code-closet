@@ -22,6 +22,15 @@ export default function Sidebar(props: Props & { width?: number }) {
   const [drag, setDrag] = createSignal<Drag | null>(null)
   const [over, setOver] = createSignal<Over | null>(null)
   const lay = createMemo(layout)
+  const [folded, setFolded] = createSignal<string[]>(JSON.parse(localStorage.getItem('closet.folded') ?? '[]'))
+  const saveFolded = (names: string[]) => {
+    setFolded(names)
+    localStorage.setItem('closet.folded', JSON.stringify(names))
+  }
+  const isFolded = (name: string) => folded().includes(name)
+  const toggleFold = (name: string) => saveFolded(isFolded(name) ? folded().filter((n) => n !== name) : [...folded(), name])
+  const groupUnread = (tabs: Tab[]) => tabs.reduce((n, t) => n + (state.byTab[t.id]?.unread ?? 0), 0)
+  const groupAsking = (tabs: Tab[]) => tabs.some((t) => state.byTab[t.id]?.pendingPermission)
 
   const apply = (p: Promise<Layout>) => p.then(setLayout)
   const endDrag = () => {
@@ -185,7 +194,10 @@ export default function Sidebar(props: Props & { width?: number }) {
                       value={g.name}
                       onDone={(name) => {
                         setEditingGroup(null)
-                        if (name && name !== g.name) apply(window.closet.renameGroup(g.name, name))
+                        if (name && name !== g.name) {
+                          if (isFolded(g.name)) saveFolded(folded().map((n) => (n === g.name ? name : n)))
+                          apply(window.closet.renameGroup(g.name, name))
+                        }
                       }}
                       onCancel={() => setEditingGroup(null)}
                     />
@@ -198,6 +210,8 @@ export default function Sidebar(props: Props & { width?: number }) {
                     dragging: drag()?.kind === 'group' && (drag() as { name: string }).name === g.name,
                     before: isOverGroup(g.name, 'before'),
                     after: isOverGroup(g.name, 'after'),
+                    folded: isFolded(g.name),
+                    alert: isFolded(g.name) && (groupUnread(g.tabs) > 0 || groupAsking(g.tabs)),
                   }}
                   tabindex={0}
                   draggable={true}
@@ -230,7 +244,22 @@ export default function Sidebar(props: Props & { width?: number }) {
                   }}
                   title="Enter or double-click to rename · drag to reorder"
                 >
+                  <button
+                    class="fold"
+                    title={isFolded(g.name) ? 'Expand group' : 'Collapse group'}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      toggleFold(g.name)
+                    }}
+                  >
+                    {isFolded(g.name) ? '▸' : '▾'}
+                  </button>
                   <span class="tab-name">{g.name}</span>
+                  <Show when={isFolded(g.name) && (groupUnread(g.tabs) > 0 || groupAsking(g.tabs))}>
+                    <span class="badge" title={groupAsking(g.tabs) ? 'Waiting on a permission' : undefined}>
+                      {groupAsking(g.tabs) ? '?' : groupUnread(g.tabs)}
+                    </span>
+                  </Show>
                   <button
                     class="close add"
                     title="New tab in this group"
@@ -253,7 +282,9 @@ export default function Sidebar(props: Props & { width?: number }) {
                   </button>
                 </div>
               </Show>
-              <For each={g.tabs}>{(tab) => renderTab(tab, g.tabs)}</For>
+              <Show when={!isFolded(g.name)}>
+                <For each={g.tabs}>{(tab) => renderTab(tab, g.tabs)}</For>
+              </Show>
             </div>
           )}
         </For>
